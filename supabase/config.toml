@@ -1,1 +1,4 @@
 project_id = "fcpgplqrlrfpttczhgbn"
+
+[functions.generate-leads]
+verify_jwt = false
