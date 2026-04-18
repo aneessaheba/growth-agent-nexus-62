@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.simulate-pitch]
 verify_jwt = false
+
+[functions.create-roryplan]
+verify_jwt = false

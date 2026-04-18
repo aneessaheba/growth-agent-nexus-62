@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Logo } from "@/components/agent/Logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Linkedin, Instagram, Check } from "lucide-react";
+import { Mail, Linkedin, Instagram, Check, ExternalLink, Loader2 } from "lucide-react";
 import { CATEGORY_LABELS, Lead, LeadCategory, useAgentStore } from "@/lib/agentStore";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type Channel = "email" | "linkedin" | "instagram";
 
@@ -12,9 +14,11 @@ const CATEGORY_ORDER: LeadCategory[] = ["customers", "sponsors", "b2b", "partner
 
 const OutreachStudio = () => {
   const navigate = useNavigate();
-  const { pkg } = useAgentStore();
+  const { pkg, companyDescription } = useAgentStore();
   const [params, setParams] = useSearchParams();
   const [approved, setApproved] = useState(false);
+  const [launching, setLaunching] = useState(false);
+  const [planUrl, setPlanUrl] = useState<string | null>(null);
 
   const initialLeadId = params.get("lead");
   const initialChannel = (params.get("channel") as Channel) || "email";
@@ -189,13 +193,68 @@ const OutreachStudio = () => {
             </div>
             <Button
               size="lg"
-              onClick={() => setApproved(true)}
-              disabled={approved}
+              onClick={async () => {
+                if (approved || launching) return;
+                setLaunching(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("create-roryplan", {
+                    body: {
+                      companyName: companyDescription.slice(0, 80) || "Untitled",
+                      leads: pkg.leads.map((l) => ({ id: l.id, name: l.name, company: l.company })),
+                    },
+                  });
+                  if (error) throw error;
+                  if (data?.error) throw new Error(data.error);
+                  setApproved(true);
+                  setPlanUrl(data?.url ?? null);
+                  toast({
+                    title: "Campaign plan created in RoryPlans",
+                    description: `${data?.taskCount ?? "All"} tasks scheduled.`,
+                  });
+                } catch (e) {
+                  toast({
+                    title: "Couldn't create RoryPlans campaign",
+                    description: e instanceof Error ? e.message : "Try again",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setLaunching(false);
+                }
+              }}
+              disabled={approved || launching}
               className="bg-foreground text-background hover:bg-foreground/90 border-0 h-12 px-8 rounded-xl font-semibold gap-2 shrink-0"
             >
-              {approved ? <><Check className="h-4 w-4" /> Approved</> : "Approve All"}
+              {launching ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Launching campaign...</>
+              ) : approved ? (
+                <><Check className="h-4 w-4" /> Approved</>
+              ) : (
+                "Approve All"
+              )}
             </Button>
           </div>
+
+          {approved && (
+            <div className="mt-6 border border-foreground rounded-xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-secondary">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-1">RoryPlans</div>
+                <p className="text-base font-semibold">Campaign plan created in RoryPlans</p>
+                <p className="text-sm text-muted-foreground">
+                  All leads and content tasks have been scheduled.
+                </p>
+              </div>
+              {planUrl && (
+                <a
+                  href={planUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-foreground text-background hover:bg-foreground/90 text-sm font-semibold transition-smooth"
+                >
+                  View plan <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          )}
         </section>
       </main>
     </div>
