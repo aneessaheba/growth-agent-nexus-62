@@ -1,14 +1,26 @@
 import { create } from "zustand";
 
-type Audience = "hosts" | "sponsors" | "universities";
-type Tone = "Casual" | "Professional" | "Bold";
+export type LeadCategory = "customers" | "sponsors" | "b2b" | "partners";
+
+export const CATEGORY_LABELS: Record<LeadCategory, string> = {
+  customers: "Customers",
+  sponsors: "Sponsors",
+  b2b: "B2B",
+  partners: "Partners",
+};
+
+export const CATEGORY_PROGRESS_LABELS: Record<LeadCategory, string> = {
+  customers: "Finding Customers",
+  sponsors: "Finding Sponsors",
+  b2b: "Finding B2B",
+  partners: "Finding Partners",
+};
 
 export interface Lead {
+  id: string;
+  category: LeadCategory;
   name: string;
-  event: string;
-  attendees: number;
-  linkedin_connections: number;
-  instagram_followers: number;
+  company: string;
   score: number;
   why_fit: string;
   email: string;
@@ -20,46 +32,36 @@ export interface GrowthPackage {
   leads: Lead[];
   linkedin_posts: string[];
   instagram_captions: string[];
-  sponsor_pitch_bullets: string[];
+  agent_review: string;
 }
 
 interface AgentState {
-  company: string;
-  city: string;
-  audiences: Audience[];
-  tone: Tone;
+  companyDescription: string;
   pkg: GrowthPackage | null;
   loading: boolean;
   error: string | null;
-  setCompany: (v: string) => void;
-  setCity: (v: string) => void;
-  toggleAudience: (a: Audience) => void;
-  setTone: (t: Tone) => void;
+  setCompanyDescription: (v: string) => void;
   setPackage: (p: GrowthPackage | null) => void;
   setLoading: (b: boolean) => void;
   setError: (e: string | null) => void;
 }
 
 export const useAgentStore = create<AgentState>((set) => ({
-  company: "Lynk — an AI networking app that turns event intros into long-term relationships.",
-  city: "San Francisco",
-  audiences: ["hosts", "sponsors"],
-  tone: "Casual",
+  companyDescription: "",
   pkg: null,
   loading: false,
   error: null,
-  setCompany: (v) => set({ company: v }),
-  setCity: (v) => set({ city: v }),
-  toggleAudience: (a) =>
-    set((s) => ({
-      audiences: s.audiences.includes(a)
-        ? s.audiences.filter((x) => x !== a)
-        : [...s.audiences, a],
-    })),
-  setTone: (t) => set({ tone: t }),
+  setCompanyDescription: (v) => set({ companyDescription: v }),
   setPackage: (p) => set({ pkg: p }),
   setLoading: (b) => set({ loading: b }),
   setError: (e) => set({ error: e }),
 }));
 
-export type { Audience, Tone };
+export function leadsByCategory(pkg: GrowthPackage | null): Record<LeadCategory, Lead[]> {
+  const empty: Record<LeadCategory, Lead[]> = { customers: [], sponsors: [], b2b: [], partners: [] };
+  if (!pkg) return empty;
+  for (const lead of pkg.leads) {
+    if (empty[lead.category]) empty[lead.category].push(lead);
+  }
+  return empty;
+}

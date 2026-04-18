@@ -4,9 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
-import AgentFeed from "./pages/AgentFeed.tsx";
-import Dashboard from "./pages/Dashboard.tsx";
-import Studio from "./pages/Studio.tsx";
+import Pipeline from "./pages/Pipeline.tsx";
+import ResultsDashboard from "./pages/ResultsDashboard.tsx";
+import OutreachStudio from "./pages/OutreachStudio.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -19,9 +19,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/agent" element={<AgentFeed />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/studio" element={<Studio />} />
+          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/dashboard" element={<ResultsDashboard />} />
+          <Route path="/studio" element={<OutreachStudio />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
