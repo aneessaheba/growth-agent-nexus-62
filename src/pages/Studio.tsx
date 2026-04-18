@@ -1,25 +1,19 @@
 import { useMemo, useState } from "react";
-import { Logo } from "@/components/agent/Logo";
+import { useNavigate } from "react-router-dom";
 import { StepProgress } from "@/components/agent/StepProgress";
 import { Button } from "@/components/ui/button";
-import { hostLeads, sponsorLeads, buildOutreach, linkedinPosts, instagramCaptions, sponsorPitchBullets } from "@/lib/agentData";
 import { useAgentStore } from "@/lib/agentStore";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Sparkles, CheckCircle2, Mail, Linkedin, Instagram, Rocket } from "lucide-react";
+import { Copy, Sparkles, CheckCircle2, Mail, Linkedin, Instagram, Rocket, Inbox } from "lucide-react";
 
 type Channel = "email" | "linkedin" | "instagram";
 
-const channelMeta: Record<Channel, { label: string; icon: typeof Mail; emoji: string }> = {
-  email: { label: "Email", icon: Mail, emoji: "✉️" },
-  linkedin: { label: "LinkedIn DM", icon: Linkedin, emoji: "💼" },
-  instagram: { label: "Instagram DM", icon: Instagram, emoji: "📸" },
+const channelMeta: Record<Channel, { label: string; icon: typeof Mail }> = {
+  email: { label: "Email", icon: Mail },
+  linkedin: { label: "LinkedIn DM", icon: Linkedin },
+  instagram: { label: "Instagram DM", icon: Instagram },
 };
-
-const allLeads = [
-  ...hostLeads.map((h) => ({ id: h.id, label: `${h.name} — ${h.event}`, name: h.name })),
-  ...sponsorLeads.map((s) => ({ id: s.id, label: `${s.company} (sponsor)`, name: s.company })),
-];
 
 const CopyableBlock = ({ text, label }: { text: string; label: string }) => {
   const { toast } = useToast();
@@ -31,70 +25,106 @@ const CopyableBlock = ({ text, label }: { text: string; label: string }) => {
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <div className="relative group glow-card p-5">
+    <div className="relative bw-card p-5">
       <pre className="text-sm text-foreground/85 whitespace-pre-wrap font-sans leading-relaxed pr-10">{text}</pre>
       <Button
         size="icon"
         variant="ghost"
         onClick={onCopy}
-        className="absolute top-3 right-3 h-8 w-8 hover:bg-primary/15 hover:text-primary-glow"
+        className="absolute top-3 right-3 h-8 w-8 hover:bg-secondary"
       >
-        {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+        {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       </Button>
     </div>
   );
 };
 
 const Studio = () => {
-  const { tone } = useAgentStore();
+  const navigate = useNavigate();
+  const { pkg, tone } = useAgentStore();
   const { toast } = useToast();
-  const [leadId, setLeadId] = useState(allLeads[0].id);
+  const [leadIdx, setLeadIdx] = useState(0);
   const [channel, setChannel] = useState<Channel>("email");
 
-  const lead = allLeads.find((l) => l.id === leadId)!;
-  const messages = useMemo(() => buildOutreach(lead.name, tone), [lead, tone]);
-  const currentMessage = channel === "email" ? messages.email : channel === "linkedin" ? messages.linkedin : messages.instagram;
+  const leads = pkg?.leads ?? [];
+  const lead = leads[leadIdx];
+
+  const currentMessage = useMemo(() => {
+    if (!lead) return "";
+    return channel === "email" ? lead.email : channel === "linkedin" ? lead.linkedin_dm : lead.instagram_dm;
+  }, [lead, channel]);
+
+  if (!pkg || leads.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="bg-foreground text-background">
+          <div className="container py-4 flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center">
+              <span className="text-foreground font-bold text-sm">G</span>
+            </div>
+            <span className="font-bold text-base tracking-tight">GrowthAgent</span>
+          </div>
+        </header>
+        <StepProgress current={4} />
+        <main className="container flex-1 flex items-center justify-center pb-20">
+          <div className="bw-card p-12 max-w-md text-center">
+            <Inbox className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="font-semibold text-lg mb-2">Nothing to show yet</h2>
+            <p className="text-sm text-muted-foreground mb-6">Run the agent first to generate outreach and content.</p>
+            <Button onClick={() => navigate("/")} className="bg-foreground text-background hover:bg-foreground/90">
+              Start over
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="container py-6 flex items-center justify-between">
-        <Logo />
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="bg-foreground text-background">
+        <div className="container py-4 flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center">
+            <span className="text-foreground font-bold text-sm">G</span>
+          </div>
+          <span className="font-bold text-base tracking-tight">GrowthAgent</span>
+        </div>
       </header>
       <StepProgress current={4} />
 
-      <main className="container flex-1 pb-32 pt-6">
-        <div className="text-center mb-10 animate-fade-in">
-          <h1 className="font-display text-4xl sm:text-5xl font-bold mb-3">
-            Outreach &amp; <span className="gradient-text">Content Studio</span>
+      <main className="container flex-1 pb-32 pt-10">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-3 tracking-tight">
+            Outreach & Content Studio
           </h1>
           <p className="text-muted-foreground">Review the agent's work, then launch.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
-          {/* LEFT: Outreach */}
-          <section className="space-y-5 animate-fade-in-up">
+          {/* LEFT */}
+          <section className="space-y-5">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Mail className="h-4 w-4 text-primary-foreground" />
+              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
+                <Mail className="h-4 w-4 text-background" />
               </div>
-              <h2 className="font-display text-2xl font-bold">Outreach Messages</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Outreach Messages</h2>
             </div>
 
-            <div className="glow-card p-5 space-y-4">
+            <div className="bw-card p-5 space-y-4">
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wide">Select a lead</label>
                 <select
-                  value={leadId}
-                  onChange={(e) => setLeadId(e.target.value)}
-                  className="w-full bg-input/60 border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={leadIdx}
+                  onChange={(e) => setLeadIdx(Number(e.target.value))}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-foreground"
                 >
-                  {allLeads.map((l) => (
-                    <option key={l.id} value={l.id}>{l.label}</option>
+                  {leads.map((l, i) => (
+                    <option key={i} value={i}>{l.name} — {l.event}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex gap-1 p-1 rounded-xl bg-muted/40 border border-border">
+              <div className="flex gap-1 p-1 rounded-xl bg-secondary border border-border">
                 {(Object.keys(channelMeta) as Channel[]).map((c) => {
                   const M = channelMeta[c];
                   const active = channel === c;
@@ -104,9 +134,7 @@ const Studio = () => {
                       onClick={() => setChannel(c)}
                       className={cn(
                         "flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-smooth flex items-center justify-center gap-1.5",
-                        active
-                          ? "bg-gradient-primary text-primary-foreground shadow-glow"
-                          : "text-muted-foreground hover:text-foreground"
+                        active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <M.icon className="h-3.5 w-3.5" />
@@ -119,59 +147,59 @@ const Studio = () => {
 
             <CopyableBlock text={currentMessage} label={channelMeta[channel].label} />
 
-            <div className="glow-card p-5">
+            <div className="bw-card p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="h-4 w-4 text-primary-glow" />
+                <Sparkles className="h-4 w-4" />
                 <h3 className="font-semibold text-sm">Agent Review</h3>
               </div>
               <ul className="space-y-2 text-sm text-foreground/75">
-                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" /> Improved 3 emails for being too long.</li>
-                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" /> Updated tone to match {tone.toLowerCase()} preference.</li>
-                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" /> Removed 2 generic openers and replaced with event-specific hooks.</li>
+                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> Improved 3 emails for being too long.</li>
+                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> Updated tone to match {tone.toLowerCase()} preference.</li>
+                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> Removed generic openers, replaced with event-specific hooks.</li>
               </ul>
             </div>
           </section>
 
-          {/* RIGHT: Content */}
-          <section className="space-y-5 animate-fade-in-up">
+          {/* RIGHT */}
+          <section className="space-y-5">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
+              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-background" />
               </div>
-              <h2 className="font-display text-2xl font-bold">Marketing Content</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Marketing Content</h2>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                <Linkedin className="h-4 w-4 text-primary-glow" /> LinkedIn Posts
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Linkedin className="h-4 w-4" /> LinkedIn Posts
               </h3>
               <div className="space-y-3">
-                {linkedinPosts.map((p, i) => (
+                {pkg.linkedin_posts.map((p, i) => (
                   <CopyableBlock key={i} text={p} label="LinkedIn post" />
                 ))}
               </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                <Instagram className="h-4 w-4 text-primary-glow" /> Instagram Captions
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Instagram className="h-4 w-4" /> Instagram Captions
               </h3>
               <div className="space-y-3">
-                {instagramCaptions.map((p, i) => (
+                {pkg.instagram_captions.map((p, i) => (
                   <CopyableBlock key={i} text={p} label="Instagram caption" />
                 ))}
               </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-primary-glow" /> Sponsor Pitch Deck Bullets
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Rocket className="h-4 w-4" /> Sponsor Pitch Deck Bullets
               </h3>
-              <div className="glow-card p-5">
+              <div className="bw-card p-5">
                 <ul className="space-y-3">
-                  {sponsorPitchBullets.map((b, i) => (
+                  {pkg.sponsor_pitch_bullets.map((b, i) => (
                     <li key={i} className="flex gap-3 text-sm text-foreground/85">
-                      <span className="font-display font-bold gradient-text shrink-0">{i + 1}.</span>
+                      <span className="font-bold shrink-0">{i + 1}.</span>
                       <span className="leading-relaxed">{b}</span>
                     </li>
                   ))}
@@ -181,18 +209,18 @@ const Studio = () => {
           </section>
         </div>
 
-        <div className="max-w-2xl mx-auto mt-12 text-center animate-fade-in">
+        <div className="max-w-2xl mx-auto mt-12 text-center">
           <Button
             size="lg"
             onClick={() =>
               toast({
                 title: "🚀 Campaign launched!",
-                description: `Sending ${hostLeads.length + sponsorLeads.length} personalized messages now.`,
+                description: `Sending ${leads.length} personalized messages now.`,
               })
             }
-            className="w-full h-14 text-base font-semibold bg-gradient-success text-primary-foreground border-0 shadow-elevated hover:opacity-95"
+            className="w-full h-14 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 border-0 rounded-xl"
           >
-            ✅ Approve &amp; Launch Campaign 🚀
+            ✅ Approve & Launch Campaign 🚀
           </Button>
           <p className="text-xs text-muted-foreground mt-4">
             You can pause, edit any message, or re-run the agent any time.

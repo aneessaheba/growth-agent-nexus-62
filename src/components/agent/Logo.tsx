@@ -1,12 +1,8 @@
-import { Sparkles } from "lucide-react";
-
 export const Logo = () => (
   <div className="flex items-center gap-2">
-    <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-      <Sparkles className="h-5 w-5 text-primary-foreground" />
+    <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
+      <span className="text-background font-bold text-sm">G</span>
     </div>
-    <span className="font-display font-bold text-lg tracking-tight">
-      Growth<span className="gradient-text">Agent</span>
-    </span>
+    <span className="font-bold text-base tracking-tight">GrowthAgent</span>
   </div>
 );

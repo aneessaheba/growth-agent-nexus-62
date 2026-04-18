@@ -14,7 +14,7 @@ const steps = [
 
 export const StepProgress = ({ current }: StepProgressProps) => {
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-4 py-6">
+    <div className="flex items-center justify-center gap-2 sm:gap-4 py-6 border-b border-border">
       {steps.map((step, idx) => {
         const isDone = step.id < current;
         const isActive = step.id === current;
@@ -23,13 +23,13 @@ export const StepProgress = ({ current }: StepProgressProps) => {
             <div className="flex items-center gap-2">
               <div
                 className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-smooth border",
-                  isDone && "bg-gradient-primary border-transparent text-primary-foreground shadow-glow",
-                  isActive && "bg-gradient-primary border-transparent text-primary-foreground shadow-glow animate-pulse-glow",
-                  !isDone && !isActive && "bg-muted/50 border-border text-muted-foreground"
+                  "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-smooth border",
+                  (isDone || isActive)
+                    ? "bg-foreground border-foreground text-background"
+                    : "bg-background border-border text-muted-foreground"
                 )}
               >
-                {isDone ? <Check className="h-4 w-4" /> : step.id}
+                {isDone ? <Check className="h-3.5 w-3.5" /> : step.id}
               </div>
               <span
                 className={cn(
@@ -43,7 +43,7 @@ export const StepProgress = ({ current }: StepProgressProps) => {
             {idx < steps.length - 1 && (
               <div className={cn(
                 "h-px w-8 sm:w-12 transition-smooth",
-                isDone ? "bg-gradient-primary" : "bg-border"
+                isDone ? "bg-foreground" : "bg-border"
               )} />
             )}
           </div>
