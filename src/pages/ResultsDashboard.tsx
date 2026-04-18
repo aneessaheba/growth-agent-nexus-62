@@ -4,11 +4,22 @@ import { Logo } from "@/components/agent/Logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORY_LABELS, Lead, LeadCategory, leadsByCategory, useAgentStore } from "@/lib/agentStore";
-import { Mail, Linkedin, Instagram } from "lucide-react";
+import { Mail, Linkedin, Instagram, FlaskConical, Check } from "lucide-react";
+import { TestPitchModal } from "@/components/agent/TestPitchModal";
 
 const ORDER: LeadCategory[] = ["customers", "sponsors", "b2b", "partners"];
 
-const LeadCard = ({ lead, onOpen }: { lead: Lead; onOpen: (channel: "email" | "linkedin" | "instagram") => void }) => (
+const LeadCard = ({
+  lead,
+  approved,
+  onOpen,
+  onTest,
+}: {
+  lead: Lead;
+  approved: boolean;
+  onOpen: (channel: "email" | "linkedin" | "instagram") => void;
+  onTest: () => void;
+}) => (
   <article className="bw-card p-5 flex flex-col gap-4">
     <header className="flex items-start justify-between gap-4">
       <div className="min-w-0">
@@ -32,13 +43,22 @@ const LeadCard = ({ lead, onOpen }: { lead: Lead; onOpen: (channel: "email" | "l
         <Instagram className="h-3.5 w-3.5" /> Instagram
       </Button>
     </div>
+    <Button
+      size="sm"
+      onClick={onTest}
+      className="rounded-lg gap-2 bg-foreground text-background hover:bg-foreground/90"
+    >
+      {approved ? <Check className="h-3.5 w-3.5" /> : <FlaskConical className="h-3.5 w-3.5" />}
+      {approved ? "Approved — Test Again" : "Test Pitch"}
+    </Button>
   </article>
 );
 
 const ResultsDashboard = () => {
   const navigate = useNavigate();
-  const { pkg } = useAgentStore();
+  const { pkg, approvedLeadIds } = useAgentStore();
   const [tab, setTab] = useState<LeadCategory>("customers");
+  const [testLead, setTestLead] = useState<Lead | null>(null);
 
   const grouped = useMemo(() => leadsByCategory(pkg), [pkg]);
   const total = pkg?.leads.length ?? 0;
@@ -116,7 +136,13 @@ const ResultsDashboard = () => {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {grouped[key].map((lead) => (
-                    <LeadCard key={lead.id} lead={lead} onOpen={(ch) => openLead(lead, ch)} />
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      approved={approvedLeadIds.includes(lead.id)}
+                      onOpen={(ch) => openLead(lead, ch)}
+                      onTest={() => setTestLead(lead)}
+                    />
                   ))}
                 </div>
               )}
@@ -124,6 +150,8 @@ const ResultsDashboard = () => {
           ))}
         </Tabs>
       </main>
+
+      <TestPitchModal lead={testLead} open={!!testLead} onOpenChange={(o) => !o && setTestLead(null)} />
     </div>
   );
 };
