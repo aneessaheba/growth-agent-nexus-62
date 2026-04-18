@@ -112,7 +112,7 @@ Call the deliver_growth_package tool exactly once.`;
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text();
       console.error("Anthropic error", anthropicRes.status, errText);
-      return new Response(JSON.stringify({ error: `Anthropic API error (${anthropicRes.status})`, details: errText.slice(0, 500) }), {
+      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -134,8 +134,7 @@ Call the deliver_growth_package tool exactly once.`;
     });
   } catch (e) {
     console.error("generate-leads error", e);
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
