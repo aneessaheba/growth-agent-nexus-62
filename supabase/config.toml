@@ -2,3 +2,6 @@ project_id = "fcpgplqrlrfpttczhgbn"
 
 [functions.generate-leads]
 verify_jwt = false
+
+[functions.simulate-pitch]
+verify_jwt = false
