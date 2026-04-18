@@ -61,21 +61,27 @@ const TOOL = {
 // Trim Apify event payloads down so we don't blow Claude's context window
 function summarizeEvents(raw: unknown): any[] {
   if (!Array.isArray(raw)) return [];
-  return raw.slice(0, 8).map((e: any) => ({
-    name: e?.name ?? e?.title ?? e?.eventName,
-    url: e?.url ?? e?.eventUrl,
-    description: typeof e?.description === "string" ? e.description.slice(0, 400) : undefined,
-    startAt: e?.startAt ?? e?.start_at ?? e?.startDate,
-    location: e?.location ?? e?.venue ?? e?.city,
-    host: e?.host ?? e?.hostName ?? e?.organizer ?? e?.calendarName,
-    hosts: Array.isArray(e?.hosts) ? e.hosts.slice(0, 3) : undefined,
-    guestCount: e?.guestCount ?? e?.attendeeCount ?? e?.attendees,
-  }));
+  return raw.slice(0, 8).map((e: any) => {
+    const org = e?.organizer ?? {};
+    const loc = e?.location ?? {};
+    return {
+      name: e?.name ?? e?.title,
+      url: e?.eventUrl ?? e?.url,
+      startAt: e?.startAt,
+      city: loc?.city,
+      venue: loc?.venueName,
+      organizerName: org?.name,
+      organizerInstagram: org?.instagram ?? null,
+      organizerLinkedin: org?.linkedin ?? null,
+      organizerTwitter: org?.twitter ?? null,
+      hosts: Array.isArray(e?.hosts) ? e.hosts.slice(0, 3).map((h: any) => h?.name).filter(Boolean) : undefined,
+    };
+  });
 }
 
 async function fetchLumaEvents(apifyToken: string, city: string): Promise<any[]> {
   const url = `https://lu.ma/${city.toLowerCase().replace(/\s+/g, "-")}`;
-  const apifyUrl = `https://api.apify.com/v2/acts/apify~luma-scraper/run-sync-get-dataset-items?token=${apifyToken}`;
+  const apifyUrl = `https://api.apify.com/v2/acts/hypebridge~luma-com-event-scraper/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`;
   const res = await fetch(apifyUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
