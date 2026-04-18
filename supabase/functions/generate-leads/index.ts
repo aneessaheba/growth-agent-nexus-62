@@ -1,4 +1,7 @@
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const SYSTEM_PROMPT = `You are GrowthAgent, an autonomous GTM agent for Lynk — an AI networking app that turns event intros into long-term relationships.
 
