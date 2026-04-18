@@ -5,67 +5,103 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are GrowthAgent, an autonomous GTM agent for Lynk — an AI networking app that turns event intros into long-term relationships.
 
-You generate REALISTIC, plausible leads and marketing content. Use real-sounding names, plausible event names, realistic numbers. Never invent obviously fake data.
+You are given REAL events scraped from Luma. For each event, generate a realistic lead profile for the event organizer. Use plausible follower/connection numbers. Personalize copy by referencing the actual event name.
 
 Always respond by calling the provided tool exactly once. Never include prose outside the tool call.`;
 
 const TOOL = {
   name: "deliver_growth_package",
-  description: "Deliver the complete set of leads and marketing content for the GrowthAgent run.",
+  description: "Deliver leads (built from real scraped events) plus marketing content.",
   input_schema: {
     type: "object",
     properties: {
       leads: {
         type: "array",
-        minItems: 8,
-        maxItems: 8,
         items: {
           type: "object",
           properties: {
             name: { type: "string", description: "Full name of the event organizer" },
-            event: { type: "string", description: "Name of the event they organize" },
-            attendees: { type: "integer", minimum: 100, maximum: 500 },
+            event: { type: "string", description: "Real event name from the scraped data" },
+            attendees: { type: "integer", minimum: 20, maximum: 2000 },
             linkedin_connections: { type: "integer", minimum: 500, maximum: 30000 },
             instagram_followers: { type: "integer", minimum: 200, maximum: 100000 },
-            score: { type: "integer", minimum: 0, maximum: 100 },
+            score: { type: "integer", minimum: 50, maximum: 98 },
             why_fit: { type: "string", description: "One sentence on why they fit Lynk" },
-            email: { type: "string", description: "Personalized cold email, 3-5 short paragraphs, signed '— The Lynk team'" },
-            linkedin_dm: { type: "string", description: "LinkedIn DM, 2-3 sentences, conversational" },
+            email: { type: "string", description: "Personalized cold email referencing the specific event, 3-5 short paragraphs, signed '— The Lynk team'" },
+            linkedin_dm: { type: "string", description: "LinkedIn DM, 2-3 sentences, conversational, references the event" },
             instagram_dm: { type: "string", description: "Instagram DM, 1-2 short sentences, very casual, lowercase ok" },
+            type: { type: "string", enum: ["host", "sponsor"] },
           },
-          required: ["name", "event", "attendees", "linkedin_connections", "instagram_followers", "score", "why_fit", "email", "linkedin_dm", "instagram_dm"],
+          required: ["name", "event", "attendees", "linkedin_connections", "instagram_followers", "score", "why_fit", "email", "linkedin_dm", "instagram_dm", "type"],
         },
       },
       linkedin_posts: {
         type: "array",
         minItems: 3,
         maxItems: 3,
-        items: { type: "string", description: "A complete LinkedIn post for Lynk, including hook + body" },
+        items: { type: "string" },
       },
       instagram_captions: {
         type: "array",
         minItems: 3,
         maxItems: 3,
-        items: { type: "string", description: "Instagram caption with line breaks and hashtags" },
+        items: { type: "string" },
       },
       sponsor_pitch_bullets: {
         type: "array",
         minItems: 5,
         maxItems: 5,
-        items: { type: "string", description: "A single concise pitch bullet to a sponsor" },
+        items: { type: "string" },
       },
     },
     required: ["leads", "linkedin_posts", "instagram_captions", "sponsor_pitch_bullets"],
   },
 };
 
+// Trim Apify event payloads down so we don't blow Claude's context window
+function summarizeEvents(raw: unknown): any[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 8).map((e: any) => ({
+    name: e?.name ?? e?.title ?? e?.eventName,
+    url: e?.url ?? e?.eventUrl,
+    description: typeof e?.description === "string" ? e.description.slice(0, 400) : undefined,
+    startAt: e?.startAt ?? e?.start_at ?? e?.startDate,
+    location: e?.location ?? e?.venue ?? e?.city,
+    host: e?.host ?? e?.hostName ?? e?.organizer ?? e?.calendarName,
+    hosts: Array.isArray(e?.hosts) ? e.hosts.slice(0, 3) : undefined,
+    guestCount: e?.guestCount ?? e?.attendeeCount ?? e?.attendees,
+  }));
+}
+
+async function fetchLumaEvents(apifyToken: string, city: string): Promise<any[]> {
+  const url = `https://lu.ma/${city.toLowerCase().replace(/\s+/g, "-")}`;
+  const apifyUrl = `https://api.apify.com/v2/acts/apify~luma-scraper/run-sync-get-dataset-items?token=${apifyToken}`;
+  const res = await fetch(apifyUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      startUrls: [{ url }],
+      maxItems: 8,
+    }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    console.error("Apify error", res.status, txt.slice(0, 300));
+    throw new Error(`Apify scraper failed (${res.status})`);
+  }
+  const data = await res.json();
+  return summarizeEvents(data);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
+    const APIFY_API_KEY = Deno.env.get("APIFY_API_KEY");
+    if (!ANTHROPIC_API_KEY || !APIFY_API_KEY) {
+      console.error("Missing API key", { hasAnthropic: !!ANTHROPIC_API_KEY, hasApify: !!APIFY_API_KEY });
+      return new Response(JSON.stringify({ error: "Service not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -73,20 +109,53 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const company: string = (body.company || "Lynk — an AI networking app that turns event intros into long-term relationships.").toString().slice(0, 1000);
-    const city: string = (body.city || "San Francisco").toString().slice(0, 100);
+    const city: string = (body.city || "sf").toString().slice(0, 100);
     const tone: string = (body.tone || "Casual").toString().slice(0, 30);
     const audiences: string[] = Array.isArray(body.audiences) ? body.audiences.slice(0, 5) : ["hosts", "sponsors"];
 
-    const userPrompt = `Generate a complete GrowthAgent package for this run.
+    // STEP 1: Scrape real events from Luma via Apify
+    let events: any[] = [];
+    try {
+      events = await fetchLumaEvents(APIFY_API_KEY, city);
+    } catch (e) {
+      console.error("Luma scrape failed", e);
+      return new Response(JSON.stringify({ error: "Couldn't fetch live events right now" }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (events.length === 0) {
+      return new Response(JSON.stringify({ error: "No events found for this city" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // STEP 2: Send real events to Claude
+    const userPrompt = `Generate a complete GrowthAgent package using REAL scraped events.
 
 COMPANY: ${company}
 TARGET CITY: ${city}
 AUDIENCES: ${audiences.join(", ")}
 TONE: ${tone}
 
-Generate exactly 8 realistic event organizer leads in ${city} who would benefit from Lynk. Mix high (85-98), medium (65-84), and lower (50-64) scores so the dashboard feels real. Make events varied: AI mixers, founder dinners, demo nights, women-in-tech brunches, hacker houses, design meetups, etc. Use realistic, diverse full names. Use plausible follower/connection counts.
+REAL LUMA EVENTS (scraped just now):
+${JSON.stringify(events, null, 2)}
 
-Tone of all written messages must be ${tone}. Personalize each email, LinkedIn DM, and Instagram DM to the specific organizer and their event — reference their event name explicitly.
+For EACH of the ${events.length} events above, build one lead for the event organizer:
+- name: organizer's full name (use the host field if present, else invent a plausible one)
+- event: use the EXACT event name from the scraped data
+- attendees: estimate based on the event style and any guestCount signal
+- linkedin_connections + instagram_followers: realistic estimates for an organizer of this kind of event
+- score: 60-98 based on fit for Lynk (community building, recurring events, networking-heavy → higher)
+- why_fit: one sentence
+- email: personalized cold email that references the specific event by name (3-5 short paragraphs, signed "— The Lynk team")
+- linkedin_dm: 2-3 conversational sentences referencing the event
+- instagram_dm: 1-2 casual sentences, lowercase ok
+- type: "host" or "sponsor"
+
+Tone of all written messages must be ${tone}.
 
 Then produce 3 LinkedIn posts for ${company}, 3 Instagram captions (with hashtags), and 5 punchy sponsor pitch bullets.
 
@@ -128,7 +197,8 @@ Call the deliver_growth_package tool exactly once.`;
       });
     }
 
-    return new Response(JSON.stringify(toolUse.input), {
+    // STEP 3: Return real-data package to the frontend (include raw events for transparency)
+    return new Response(JSON.stringify({ ...toolUse.input, source_events: events }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
