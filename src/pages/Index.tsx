@@ -1,5 +1,5 @@
-import Onboarding from "./Onboarding";
+import Setup from "./Setup";
 
-const Index = () => <Onboarding />;
+const Index = () => <Setup />;
 
 export default Index;
