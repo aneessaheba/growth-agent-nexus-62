@@ -56,8 +56,9 @@ const LeadCard = ({
 
 const ResultsDashboard = () => {
   const navigate = useNavigate();
-  const { pkg } = useAgentStore();
+  const { pkg, approvedLeadIds } = useAgentStore();
   const [tab, setTab] = useState<LeadCategory>("customers");
+  const [testLead, setTestLead] = useState<Lead | null>(null);
 
   const grouped = useMemo(() => leadsByCategory(pkg), [pkg]);
   const total = pkg?.leads.length ?? 0;
@@ -135,7 +136,13 @@ const ResultsDashboard = () => {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {grouped[key].map((lead) => (
-                    <LeadCard key={lead.id} lead={lead} onOpen={(ch) => openLead(lead, ch)} />
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      approved={approvedLeadIds.includes(lead.id)}
+                      onOpen={(ch) => openLead(lead, ch)}
+                      onTest={() => setTestLead(lead)}
+                    />
                   ))}
                 </div>
               )}
@@ -143,6 +150,8 @@ const ResultsDashboard = () => {
           ))}
         </Tabs>
       </main>
+
+      <TestPitchModal lead={testLead} open={!!testLead} onOpenChange={(o) => !o && setTestLead(null)} />
     </div>
   );
 };
