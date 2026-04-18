@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAgentStore, type Audience, type Tone } from "@/lib/agentStore";
 import { cn } from "@/lib/utils";
-import { Rocket, PartyPopper, DollarSign, GraduationCap, Sparkles } from "lucide-react";
+import { Rocket } from "lucide-react";
 
-const audienceOptions: { id: Audience; label: string; icon: typeof PartyPopper; emoji: string }[] = [
-  { id: "hosts", label: "Event Hosts", icon: PartyPopper, emoji: "🎪" },
-  { id: "sponsors", label: "Sponsors", icon: DollarSign, emoji: "💰" },
-  { id: "universities", label: "Universities", icon: GraduationCap, emoji: "🎓" },
+const audienceOptions: { id: Audience; label: string; emoji: string }[] = [
+  { id: "hosts", label: "Event Hosts", emoji: "🎪" },
+  { id: "sponsors", label: "Sponsors", emoji: "💰" },
+  { id: "universities", label: "Universities", emoji: "🎓" },
 ];
 
 const toneOptions: Tone[] = ["Casual", "Professional", "Bold"];
@@ -24,68 +24,61 @@ const Onboarding = () => {
 
   const launch = () => {
     setLaunching(true);
-    setTimeout(() => navigate("/agent"), 350);
+    navigate("/agent");
   };
 
   const canLaunch = company.trim().length > 5 && city.trim().length > 1 && audiences.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="container py-6 flex items-center justify-between">
-        <Logo />
-        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-primary-glow" />
-          Powered by Lynk × GrowthAgent
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="bg-foreground text-background">
+        <div className="container py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center">
+              <span className="text-foreground font-bold text-sm">G</span>
+            </div>
+            <span className="font-bold text-base tracking-tight">GrowthAgent</span>
+          </div>
+          <span className="text-xs opacity-70 hidden sm:inline">Powered by Lynk × GrowthAgent</span>
         </div>
       </header>
 
       <StepProgress current={1} />
 
-      <main className="container flex-1 flex flex-col items-center justify-center pb-20 pt-6">
-        <div className="max-w-3xl w-full text-center animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-soft border border-primary/30 mb-8">
-            <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <span className="text-xs font-medium text-foreground/80">Autonomous GTM agent · ready</span>
-          </div>
-
-          <h1 className="font-display text-5xl sm:text-7xl font-bold tracking-tight mb-5">
-            <span className="gradient-text">GrowthAgent</span>
+      <main className="container flex-1 flex flex-col items-center justify-center pb-20 pt-10">
+        <div className="max-w-2xl w-full text-center">
+          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight mb-5">
+            GrowthAgent
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
             Your autonomous GTM agent. Find hosts, win sponsors, grow faster.
           </p>
 
-          <div className="glow-card p-6 sm:p-8 text-left space-y-6 animate-scale-in">
+          <div className="bw-card p-6 sm:p-8 text-left space-y-6">
             <div>
-              <label className="text-sm font-medium text-foreground/80 mb-2 block">
-                Describe your company
-              </label>
+              <label className="text-sm font-medium mb-2 block">Describe your company</label>
               <Textarea
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Describe your company..."
                 rows={3}
-                className="bg-input/60 border-border resize-none focus-visible:ring-primary"
+                className="resize-none border-border focus-visible:ring-foreground"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-foreground/80 mb-2 block">
-                Target city
-              </label>
+              <label className="text-sm font-medium mb-2 block">Target city</label>
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Target city (e.g. San Francisco)"
-                className="bg-input/60 border-border focus-visible:ring-primary"
+                className="border-border focus-visible:ring-foreground"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-foreground/80 mb-3 block">
-                Who should we target?
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="text-sm font-medium mb-3 block">Who should we target?</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {audienceOptions.map((opt) => {
                   const active = audiences.includes(opt.id);
                   return (
@@ -94,17 +87,14 @@ const Onboarding = () => {
                       type="button"
                       onClick={() => toggleAudience(opt.id)}
                       className={cn(
-                        "relative rounded-xl border px-4 py-4 flex items-center gap-3 transition-smooth text-left",
+                        "rounded-xl border px-4 py-3 flex items-center gap-2 transition-smooth text-left",
                         active
-                          ? "border-transparent bg-gradient-soft shadow-glow"
-                          : "border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/40"
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-background hover:border-foreground"
                       )}
                     >
-                      {active && <div className="absolute inset-0 rounded-xl gradient-border pointer-events-none" />}
-                      <span className="text-2xl">{opt.emoji}</span>
-                      <span className={cn("font-medium text-sm", active ? "text-foreground" : "text-muted-foreground")}>
-                        {opt.label}
-                      </span>
+                      <span className="text-lg">{opt.emoji}</span>
+                      <span className="font-medium text-sm">{opt.label}</span>
                     </button>
                   );
                 })}
@@ -112,8 +102,8 @@ const Onboarding = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-foreground/80 mb-3 block">Tone</label>
-              <div className="inline-flex p-1 rounded-xl bg-muted/40 border border-border">
+              <label className="text-sm font-medium mb-3 block">Tone</label>
+              <div className="inline-flex p-1 rounded-xl bg-secondary border border-border">
                 {toneOptions.map((t) => (
                   <button
                     key={t}
@@ -122,7 +112,7 @@ const Onboarding = () => {
                     className={cn(
                       "px-5 py-2 rounded-lg text-sm font-medium transition-smooth",
                       tone === t
-                        ? "bg-gradient-primary text-primary-foreground shadow-glow"
+                        ? "bg-foreground text-background"
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
@@ -136,10 +126,7 @@ const Onboarding = () => {
               size="lg"
               disabled={!canLaunch || launching}
               onClick={launch}
-              className={cn(
-                "w-full h-14 text-base font-semibold bg-gradient-primary hover:opacity-95 text-primary-foreground border-0 shadow-elevated transition-smooth",
-                launching && "animate-pulse"
-              )}
+              className="w-full h-13 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 border-0 rounded-xl"
             >
               <Rocket className="h-5 w-5 mr-2" />
               Launch Agent 🚀
@@ -147,7 +134,7 @@ const Onboarding = () => {
           </div>
 
           <p className="text-xs text-muted-foreground mt-6">
-            The agent will scrape, enrich, score and write outreach in under 60 seconds.
+            The agent will research, score, and write outreach in under a minute.
           </p>
         </div>
       </main>
