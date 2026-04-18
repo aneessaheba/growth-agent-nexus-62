@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Logo } from "@/components/agent/Logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Linkedin, Instagram, Check } from "lucide-react";
+import { Mail, Linkedin, Instagram, Check, ExternalLink, Loader2 } from "lucide-react";
 import { CATEGORY_LABELS, Lead, LeadCategory, useAgentStore } from "@/lib/agentStore";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type Channel = "email" | "linkedin" | "instagram";
 
@@ -12,9 +14,11 @@ const CATEGORY_ORDER: LeadCategory[] = ["customers", "sponsors", "b2b", "partner
 
 const OutreachStudio = () => {
   const navigate = useNavigate();
-  const { pkg } = useAgentStore();
+  const { pkg, companyDescription } = useAgentStore();
   const [params, setParams] = useSearchParams();
   const [approved, setApproved] = useState(false);
+  const [launching, setLaunching] = useState(false);
+  const [planUrl, setPlanUrl] = useState<string | null>(null);
 
   const initialLeadId = params.get("lead");
   const initialChannel = (params.get("channel") as Channel) || "email";
