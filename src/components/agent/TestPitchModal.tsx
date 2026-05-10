@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Lead, useAgentStore } from "@/lib/agentStore";
 import { Loader2, Sparkles, Check } from "lucide-react";
@@ -127,7 +126,7 @@ export const TestPitchModal = ({ lead, open, onOpenChange }: TestPitchModalProps
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[50vh] px-6 py-4" ref={scrollRef as any}>
+        <div ref={scrollRef} className="max-h-[50vh] overflow-y-auto px-6 py-4">
           <div className="flex flex-col gap-3">
             {messages.map((m, i) => (
               <div
@@ -151,7 +150,7 @@ export const TestPitchModal = ({ lead, open, onOpenChange }: TestPitchModalProps
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row gap-2">
           <Button
