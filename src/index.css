@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -19,6 +19,7 @@
 
     --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 0 0% 20%;
 
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 0%;
