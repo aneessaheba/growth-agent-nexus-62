@@ -68,7 +68,7 @@ Return ONLY the rewritten email body. No preamble, no explanation.`;
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 1500,
         system: systemPrompt,
         messages: outboundMessages,
